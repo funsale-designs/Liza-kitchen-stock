@@ -1,0 +1,189 @@
+import { useState } from "react"; import { Card, CardContent } from "@/components/ui/card"; import { Button } from "@/components/ui/button"; import { Input } from "@/components/ui/input"; import * as XLSX from "xlsx";
+
+export default function KitchenApp() { const [recipes, setRecipes] = useState([]); const [name, setName] = useState(""); const [category, setCategory] = useState(""); const [portions, setPortions] = useState("");
+
+// ingredient format: name | amount per portion | unit const [ingredientInput, setIngredientInput] = useState("");
+
+const addRecipe = () => { if (!name || !ingredientInput) return;
+
+// expected format per line:
+// rice,40,g
+// salad,0.25,cup
+const ingredients = ingredientInput
+  .split("\n")
+  .map(line => {
+    const [name, amount, unit] = line.split(",").map(x => x.trim());
+    if (!name) return null;
+    return {
+      name,
+      amountPerPortion: Number(amount) || 0,
+      unit: unit || ""
+    };
+  })
+  .filter(Boolean);
+
+const newRecipe = {
+  id: Date.now(),
+  name,
+  category: category || "Uncategorised",
+  portions: Number(portions) || 1,
+  ingredients
+};
+
+setRecipes([...recipes, newRecipe]);
+
+setName("");
+setCategory("");
+setPortions("");
+setIngredientInput("");
+
+};
+
+const handleFileUpload = (e) => { const file = e.target.files[0]; if (!file) return;
+
+const reader = new FileReader();
+reader.onload = (evt) => {
+  const data = new Uint8Array(evt.target.result);
+  const workbook = XLSX.read(data, { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const json = XLSX.utils.sheet_to_json(sheet);
+
+  // Recipe | Category | Portions | Ingredient | Amount | Unit
+  const grouped = {};
+
+  json.forEach(row => {
+    const recipeName = row.Recipe || row.recipe;
+    if (!recipeName) return;
+
+    if (!grouped[recipeName]) {
+      grouped[recipeName] = {
+        category: row.Category || "Uncategorised",
+        portions: Number(row.Portions) || 1,
+        ingredients: []
+      };
+    }
+
+    if (row.Ingredient) {
+      grouped[recipeName].ingredients.push({
+        name: row.Ingredient,
+        amountPerPortion: Number(row.Amount) || 0,
+        unit: row.Unit || ""
+      });
+    }
+  });
+
+  const newRecipes = Object.entries(grouped).map(([name, data]) => ({
+    id: Date.now() + Math.random(),
+    name,
+    category: data.category,
+    portions: data.portions,
+    ingredients: data.ingredients
+  }));
+
+  setRecipes(prev => [...prev, ...newRecipes]);
+};
+
+reader.readAsArrayBuffer(file);
+
+};
+
+const generatePrepList = () => { const prep = {};
+
+recipes.forEach(recipe => {
+  recipe.ingredients.forEach(item => {
+    const key = `${item.name.toLowerCase()} (${item.unit})`;
+    const total = item.amountPerPortion * recipe.portions;
+
+    prep[key] = (prep[key] || 0) + total;
+  });
+});
+
+return Object.entries(prep).sort((a, b) => a[0].localeCompare(b[0]));
+
+};
+
+const handlePrint = () => { window.print(); };
+
+const prepList = generatePrepList();
+
+return ( <div className="p-6 grid gap-6">
+
+<style>{`
+    @media print {
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+      .no-print { display: none !important; }
+    }
+  `}</style>
+
+  <h1 className="text-2xl font-bold">Kitchen Recipe Manager</h1>
+
+  <Card className="no-print">
+    <CardContent className="p-4 grid gap-3">
+      <Input placeholder="Recipe name" value={name} onChange={e => setName(e.target.value)} />
+      <Input placeholder="Category" value={category} onChange={e => setCategory(e.target.value)} />
+      <Input placeholder="Portions" value={portions} onChange={e => setPortions(e.target.value)} />
+
+      <textarea
+        className="border p-2 rounded"
+        placeholder={`Ingredients format per line:\nrice,40,g\nsalad,0.25,cup`}
+        value={ingredientInput}
+        onChange={e => setIngredientInput(e.target.value)}
+        rows={6}
+      />
+
+      <Button onClick={addRecipe}>Add Recipe</Button>
+    </CardContent>
+  </Card>
+
+  <Card className="no-print">
+    <CardContent className="p-4 grid gap-3">
+      <h2 className="text-xl font-semibold">Upload Excel</h2>
+      <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
+      <p className="text-sm text-gray-500">
+        Columns: Recipe | Category | Portions | Ingredient | Amount | Unit
+      </p>
+    </CardContent>
+  </Card>
+
+  <div className="no-print">
+    <Button onClick={handlePrint}>Print Prep List</Button>
+  </div>
+
+  <div id="printArea" className="grid gap-6">
+
+    <Card>
+      <CardContent className="p-4">
+        <h2 className="text-xl font-semibold mb-2">Recipes</h2>
+        {recipes.map(r => (
+          <div key={r.id} className="mb-4">
+            <strong>{r.name}</strong> ({r.category}) - Portions: {r.portions}
+            <ul className="list-disc ml-5">
+              {r.ingredients.map((i, idx) => (
+                <li key={idx}>
+                  {i.name} — {i.amountPerPortion}{i.unit} per portion
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardContent className="p-4">
+        <h2 className="text-xl font-semibold mb-3">Prep List (Scaled)</h2>
+        <ul className="list-disc ml-5">
+          {prepList.map(([item, qty]) => (
+            <li key={item}>{item} = {qty}</li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+
+  </div>
+
+</div>
+
+); }
