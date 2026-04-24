@@ -24,15 +24,16 @@ export default function KitchenApp() {
       })
       .filter(Boolean);
 
-    const newRecipe = {
-      id: Date.now(),
-      name,
-      category: category || "Uncategorised",
-      portions: Number(portions) || 1,
-      ingredients
-    };
-
-    setRecipes([...recipes, newRecipe]);
+    setRecipes([
+      ...recipes,
+      {
+        id: Date.now(),
+        name,
+        category: category || "Uncategorised",
+        portions: Number(portions) || 1,
+        ingredients
+      }
+    ]);
 
     setName("");
     setCategory("");
@@ -99,81 +100,95 @@ export default function KitchenApp() {
       });
     });
 
-    return Object.entries(prep).sort((a, b) => a[0].localeCompare(b[0]));
+    return Object.entries(prep);
   };
 
   const handlePrint = () => window.print();
   const prepList = generatePrepList();
 
   return (
-    <div className="container">
+    <div className="app">
 
       <style>{`
         body {
           margin: 0;
-          background: #f4f6f8;
-          font-family: Arial, sans-serif;
+          font-family: Arial;
+          background: #f2f4f7;
         }
 
-        .container {
-          max-width: 900px;
-          margin: auto;
-          padding: 15px;
+        .app {
+          max-width: 100%;
+          padding: 12px;
         }
 
         h1 {
           text-align: center;
-          font-size: 22px;
-          margin-bottom: 5px;
+          font-size: 26px;
+          margin: 10px 0;
+          font-weight: 800;
         }
 
-        .subtitle {
+        .sub {
           text-align: center;
           color: #666;
-          margin-bottom: 20px;
-          font-size: 13px;
+          margin-bottom: 15px;
         }
 
         .card {
           background: white;
-          padding: 15px;
-          border-radius: 12px;
-          margin-bottom: 15px;
-          box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+          padding: 18px;
+          border-radius: 14px;
+          margin-bottom: 14px;
+          box-shadow: 0 8px 20px rgba(0,0,0,0.08);
         }
 
         .title {
-          font-weight: bold;
+          font-size: 18px;
+          font-weight: 800;
           margin-bottom: 10px;
         }
 
         input, textarea {
           width: 100%;
-          padding: 12px;
+          font-size: 18px;
+          padding: 14px;
           margin: 6px 0;
-          border-radius: 8px;
+          border-radius: 10px;
           border: 1px solid #ccc;
-          font-size: 16px;
         }
 
         textarea {
-          min-height: 100px;
+          min-height: 120px;
         }
 
         button {
           width: 100%;
-          padding: 14px;
+          padding: 16px;
+          font-size: 18px;
+          font-weight: 800;
           border: none;
-          border-radius: 10px;
-          background: linear-gradient(135deg, #111, #444);
+          border-radius: 12px;
+          background: #111;
           color: white;
-          font-weight: bold;
-          font-size: 16px;
-          cursor: pointer;
+          margin-top: 8px;
         }
 
-        button:hover {
-          opacity: 0.9;
+        button:active {
+          transform: scale(0.98);
+        }
+
+        .prep-item {
+          font-size: 18px;
+          padding: 10px 0;
+          border-bottom: 1px solid #eee;
+        }
+
+        .recipe {
+          margin-bottom: 18px;
+        }
+
+        .recipe strong {
+          font-size: 18px;
         }
 
         ul {
@@ -181,7 +196,8 @@ export default function KitchenApp() {
         }
 
         li {
-          margin-bottom: 5px;
+          font-size: 16px;
+          margin: 4px 0;
         }
 
         @media print {
@@ -193,60 +209,46 @@ export default function KitchenApp() {
       `}</style>
 
       <h1>Liza Kitchen System</h1>
-      <div className="subtitle">Recipes • Prep • Production</div>
+      <div className="sub">Production • Prep • Recipes</div>
 
-      {/* ADD RECIPE */}
+      {/* INPUT */}
       <div className="card no-print">
         <div className="title">Add Recipe</div>
 
-        <input
-          placeholder="Recipe name"
-          value={name}
-          onChange={e => setName(e.target.value)}
-        />
-
-        <input
-          placeholder="Category"
-          value={category}
-          onChange={e => setCategory(e.target.value)}
-        />
-
-        <input
-          placeholder="Portions"
-          value={portions}
-          onChange={e => setPortions(e.target.value)}
-        />
+        <input placeholder="Recipe name" value={name} onChange={e => setName(e.target.value)} />
+        <input placeholder="Category" value={category} onChange={e => setCategory(e.target.value)} />
+        <input placeholder="Portions" value={portions} onChange={e => setPortions(e.target.value)} />
 
         <textarea
-          placeholder={`rice,40,g\nsalad,0.25,cup`}
+          placeholder={`rice,40,g\nsalad,0.25,cup\nchicken,150,g`}
           value={ingredientInput}
           onChange={e => setIngredientInput(e.target.value)}
         />
 
-        <button onClick={addRecipe}>Add Recipe</button>
+        <button onClick={addRecipe}>ADD RECIPE</button>
       </div>
 
       {/* UPLOAD */}
       <div className="card no-print">
         <div className="title">Upload Excel</div>
         <input type="file" onChange={handleFileUpload} />
-        <small>Recipe | Category | Portions | Ingredient | Amount | Unit</small>
       </div>
 
       {/* PRINT */}
       <div className="no-print">
-        <button onClick={handlePrint}>Print Prep List</button>
+        <button onClick={handlePrint}>PRINT PREP LIST</button>
       </div>
 
-      {/* PRINT AREA */}
+      {/* OUTPUT */}
       <div id="printArea">
 
         <div className="card">
           <div className="title">Recipes</div>
 
           {recipes.map(r => (
-            <div key={r.id} style={{ marginBottom: 15 }}>
+            <div key={r.id} className="recipe">
               <strong>{r.name}</strong> ({r.category}) - {r.portions} portions
+
               <ul>
                 {r.ingredients.map((i, idx) => (
                   <li key={idx}>
@@ -259,18 +261,16 @@ export default function KitchenApp() {
         </div>
 
         <div className="card">
-          <div className="title">Prep List</div>
-          <ul>
-            {prepList.map(([item, qty]) => (
-              <li key={item}>
-                <strong>{item}</strong>: {qty}
-              </li>
-            ))}
-          </ul>
+          <div className="title">PREP LIST</div>
+
+          {prepList.map(([item, qty]) => (
+            <div key={item} className="prep-item">
+              <strong>{item}</strong> = {qty}
+            </div>
+          ))}
         </div>
 
       </div>
-
     </div>
   );
 }
